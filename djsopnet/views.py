@@ -87,10 +87,10 @@ def generate_block_info_response(block_info):
 
 # --- Blocks ---
 
-def setup_blocks(request, project_id = None, stack_id = None):
+def setup_blocks(request, dataset_id = None):
     '''
     Initialize and store the blocks and block info in the db, associated with
-    the given stack, if these things don't already exist.
+    the given dataset, if these things don't already exist.
     '''
     try:
         width = int(request.GET.get('width'))
@@ -99,30 +99,29 @@ def setup_blocks(request, project_id = None, stack_id = None):
     except:
         return HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
-    s = get_object_or_404(Dataset, pk=stack_id)
-    p = get_object_or_404(Project, pk=project_id)
+    ds = get_object_or_404(Dataset, pk=dataset_id)
     u = User.objects.get(id=1)
 
-    nx = s.dimension.x / width;
-    ny = s.dimension.y / height;
-    nz = s.dimension.z / depth;
+    nx = ds.dimension.x / width;
+    ny = ds.dimension.y / height;
+    nz = ds.dimension.z / depth;
 
-    # If stack size is not equally divisible by block size...
-    if nx * width < s.dimension.z:
+    # If dataset size is not equally divisible by block size...
+    if nx * width < ds.dimension.z:
         nx = nx + 1;
 
-    if ny * height < s.dimension.y:
+    if ny * height < ds.dimension.y:
         ny = ny + 1;
 
-    if nz * depth < s.dimension.z:
+    if nz * depth < ds.dimension.z:
         nz = nz + 1;
 
     try:
-        info = BlockInfo.objects.get(stack=s)
+        info = BlockInfo.objects.get(dataset=ds)
         return HttpResponse(json.dumps({'ok': False}), mimetype='text/json')
     except BlockInfo.DoesNotExist:
 
-        info = BlockInfo(user = u, project = p, stack = s,
+        info = BlockInfo(user = u, dataset = ds,
                          height = height, width = width, depth = depth,
                          num_x = nx, num_y = ny, num_z = nz)
         info.save();
@@ -131,22 +130,22 @@ def setup_blocks(request, project_id = None, stack_id = None):
     for z in range(0, s.dimension.z, depth):
         for y in range(0, s.dimension.y, height):
             for x in range(0, s.dimension.x, width):
-                block = Block(user=u, project=p, stack=s, min_x = x, min_y = y, min_z = z,
+                block = Block(user=u, dataset=ds, min_x = x, min_y = y, min_z = z,
                               max_x = x + width, max_y = y + height, max_z = z + depth,
                               slices = [], segments = [], slices_flag = False,
                               segments_flag = False)
                 block.save();
     return HttpResponse(json.dumps({'ok': True}), mimetype='text/json')
 
-def block_at_location(request, project_id = None, stack_id = None):
+def block_at_location(request, dataset_id = None):
 
-    s = get_object_or_404(Dataset, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=dataset_id)
     try:
         x = int(request.GET.get('x'))
         y = int(request.GET.get('y'))
         z = int(request.GET.get('z'))
         # Block are closed-open, thus lte/gt
-        block = Block.objects.get(stack = s,
+        block = Block.objects.get(dataset = ds,
                                  min_x__lte = x,
                                  min_y__lte = y,
                                  min_z__lte = z,
@@ -158,32 +157,32 @@ def block_at_location(request, project_id = None, stack_id = None):
         return generate_block_response(None)
 
 
-def block_info(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk=stack_id)
+def block_info(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk=dataset_id)
     try:
-        block_info = BlockInfo.objects.get(stack = s)
+        block_info = BlockInfo.objects.get(dataset = ds)
         return generate_block_info_response(block_info)
     except:
         return generate_block_info_response(None)
 
-def set_block_slice_flag(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk=stack_id)
+def set_block_slice_flag(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk=dataset_id)
     block_id = int(request.GET.get('block_id'))
     flag = int(request.GET.get('flag'))
     try:
-        block = Block.objects.get(stack = s, id = block_id)
+        block = Block.objects.get(dataset = ds, id = block_id)
         block.slices_flag = flag
         block.save()
         return HttpResponse(json.dumps({'ok': True}), mimetype='text/json')
     except:
         HttpResponse(json.dumps({'ok': False}), mimetype='text/json')
 
-def set_block_segment_flag(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk=stack_id)
+def set_block_segment_flag(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk=dataset_id)
     block_id = int(request.GET.get('block_id'))
     flag = int(request.GET.get('flag'))
     try:
-        block = Block.objects.get(stack = s, id = block_id)
+        block = Block.objects.get(dataset = ds, id = block_id)
         block.segments_flag = flag
         block.save()
         return HttpResponse(json.dumps({'ok': True}), mimetype='text/json')
@@ -192,9 +191,8 @@ def set_block_segment_flag(request, project_id = None, stack_id = None):
 
 # --- Slices ---
 
-def insert_slice(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
-    p = get_object_or_404(Project, pk = project_id)
+def insert_slice(request, dataset_id = None):
+    ds = get_object_or_404(Dataset, pk = dataset_id)
     u = User.objects.get(id = 1)
 
     try:
@@ -225,7 +223,7 @@ def insert_slice(request, project_id = None, stack_id = None):
         max_x = -1
         max_y = -1
 
-    slice = Slice(project = p, stack = s, user = u,
+    slice = Slice(dataset = ds, user = u,
                   assembly = None, hash_value = hash_value, section = section,
                   min_x = min_x, min_y = min_y, max_x = max_x, max_y = max_y,
                   ctr_x = ctr_x, ctr_y = ctr_y, value = value,
@@ -235,8 +233,8 @@ def insert_slice(request, project_id = None, stack_id = None):
     return HttpResponse(json.dumps({'id': slice.id}), mimetype='text/json')
 
 
-def set_slices_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def set_slices_block(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     try:
         slice_ids_str = request.GET.getlist('slice[]')
@@ -246,7 +244,7 @@ def set_slices_block(request, project_id = None, stack_id = None):
 
         block = Block.objects.get(id = block_id)
 
-        slices = Slice.objects.filter(stack = s, id__in = slice_ids)
+        slices = Slice.objects.filter(dataset = ds, id__in = slice_ids)
 
         ok_slice_ids = [qslice.id for qslice in slices]
 
@@ -260,34 +258,34 @@ def set_slices_block(request, project_id = None, stack_id = None):
         return HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
 
-def retrieve_slices_by_hash(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_slices_by_hash(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     hash_values_str = request.GET.getlist('hash[]')
     hash_values = map(int, hash_values_str)
-    slices = Slice.object.filter(stack = s, hash_value__in = hash_values)
+    slices = Slice.object.filter(dataset = ds, hash_value__in = hash_values)
     return generate_slices_response(slices)
 
-def retrieve_slices_by_dbid(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_slices_by_dbid(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     ids_str = request.GET.get('id[]')
     ids = map(int, ids_str)
-    slices = Slice.object.filter(stack = s, id__in = ids)
+    slices = Slice.object.filter(dataset = ds, id__in = ids)
     return generate_slices_response(slices)
 
 
-def retrieve_slices_by_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_slices_by_block(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     block_id = int(request.GET.get('block_id'))
     try:
-        block = Block.objects.get(stack = s, id = block_id)
+        block = Block.objects.get(dataset = ds, id = block_id)
         slice_ids = block.slices
-        slices = Slice.object.filter(stack = s, id__in = slice_ids)
+        slices = Slice.object.filter(dataset = ds, id__in = slice_ids)
         return generate_slices_response(slices)
     except:
         return generate_slices_response(Slice.objects.none())
 
-def set_parent_slice(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def set_parent_slice(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     try:
         child_id_strs = request.GET.getlist('child_id[]')
         parent_id_strs = reqeust.GET.getlist('parent_id[]')
@@ -297,23 +295,23 @@ def set_parent_slice(request, project_id = None, stack_id = None):
 
         # TODO: figure out how to do this in a single db hit.
         for child_id, parent_id in zip(child_ids, parent_ids):
-            child = Slice.objects.get(stack = s, id = child_id)
-            parent = Slice.objects.get(stack = s, id = parent_id)
+            child = Slice.objects.get(dataset = ds, id = child_id)
+            parent = Slice.objects.get(dataset = ds, id = parent_id)
             child.parent = parent
             child.save()
         return HttpResponse(json.dumps({'ok' : True}), mimetype = 'text/json')
     except:
         return HttpResponse(json.dumps({'ok' : False}), mimetype = 'text/json')
 
-def retrieve_parent_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_parent_slices(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     cp_array = []
 
     try:
         ids_str = request.GET.getlist('id[]')
         ids = map(int, ids_str)
-        children = Slice.objects.get(stack = s, id__in = ids)
+        children = Slice.objects.get(dataset = ds, id__in = ids)
         for child in children:
             cp_array.append({'child' : child.id, 'parent' : child.parent.id})
     except:
@@ -321,17 +319,17 @@ def retrieve_parent_slices(request, project_id = None, stack_id = None):
 
     return HttpResponse(json.dumps({'cp_map' : cp_array}), mimetype = 'text/json')
 
-def retrieve_child_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_child_slices(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     pc_array = []
 
     try:
         ids_str = request.GET.getlist('id[]')
         ids = map(int, ids_str)
-        parents = Slice.objects.filter(stack = s, id__in = ids)
+        parents = Slice.objects.filter(dataset = ds, id__in = ids)
 
         for parent in parents:
-            children = Slice.objects.filter(stack = s, parent = parent)
+            children = Slice.objects.filter(dataset = ds, parent = parent)
             pc_array.append({'parent' : parent.id,
                              'children' : [child.id for child in children]})
     except:
@@ -341,8 +339,8 @@ def retrieve_child_slices(request, project_id = None, stack_id = None):
 
 # --- Segments ---
 
-def insert_end_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def insert_end_segment(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -351,9 +349,9 @@ def insert_end_segment(request, project_id = None, stack_id = None):
         ctr_x = float(request.GET.get('cx'))
         ctr_y = float(request.GET.get('cy'))
 
-        slice = Slice.objects.get(stack = s, id = slice_id)
+        slice = Slice.objects.get(dataset = ds, id = slice_id)
 
-        segment = Segment(stack = s, assembly = None, hash_value = hash_value,
+        segment = Segment(dataset = ds, assembly = None, hash_value = hash_value,
                           section_inf = slice.section, min_x = slice.min_x,
                           min_y = slice.min_y, max_x = slice.max_x, max_y = slice.max_y,
                           ctr_x = ctr_x, ctr_y = ctr_y, type = 0, direction = direction,
@@ -366,8 +364,8 @@ def insert_end_segment(request, project_id = None, stack_id = None):
 
 
 
-def insert_continuation_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def insert_continuation_segment(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -377,8 +375,8 @@ def insert_continuation_segment(request, project_id = None, stack_id = None):
         ctr_x = float(request.GET.get('cx'))
         ctr_y = float(request.GET.get('cy'))
 
-        slice_a = Slice.objects.get(stack = s, id = slice_a_id)
-        slice_b = Slice.objects.get(stack = s, id = slice_b_id)
+        slice_a = Slice.objects.get(dataset = ds, id = slice_a_id)
+        slice_b = Slice.objects.get(dataset = ds, id = slice_b_id)
 
         min_x = min(slice_a.min_x, slice_b.min_x)
         min_y = min(slice_a.min_y, slice_b.min_y)
@@ -386,7 +384,7 @@ def insert_continuation_segment(request, project_id = None, stack_id = None):
         max_y = max(slice_a.max_y, slice_b.max_y)
         section = min(slice_a.section, slice_b.section)
 
-        segment = Segment(stack = s, assembly = None, hash_value = hash_value,
+        segment = Segment(dataset = ds, assembly = None, hash_value = hash_value,
                           section_inf = section, min_x = min_x,
                           min_y = min_y, max_x = max_x, max_y = max_y,
                           ctr_x = ctr_x, ctr_y = ctr_y, type = 1, direction = direction,
@@ -397,8 +395,8 @@ def insert_continuation_segment(request, project_id = None, stack_id = None):
         return HttpResponse(json.dumps({'id': -1}), mimetype='text/json')
 
 
-def insert_branch_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def insert_branch_segment(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -409,9 +407,9 @@ def insert_branch_segment(request, project_id = None, stack_id = None):
         ctr_x = float(request.GET.get('cx'))
         ctr_y = float(request.GET.get('cy'))
 
-        slice_a = Slice.objects.get(stack = s, id = slice_a_id)
-        slice_b = Slice.objects.get(stack = s, id = slice_b_id)
-        slice_c = Slice.objects.get(stack = s, id = slice_c_id)
+        slice_a = Slice.objects.get(dataset = ds, id = slice_a_id)
+        slice_b = Slice.objects.get(dataset = ds, id = slice_b_id)
+        slice_c = Slice.objects.get(dataset = ds, id = slice_c_id)
 
         min_x = min(min(slice_a.min_x, slice_b.min_x), slice_c.min_x)
         min_y = min(min(slice_a.min_y, slice_b.min_y), slice_c.min_y)
@@ -419,7 +417,7 @@ def insert_branch_segment(request, project_id = None, stack_id = None):
         max_y = max(max(slice_a.max_y, slice_b.max_y), slice_c.max_y)
         section = min(min(slice_a.section, slice_b.section), slice_c.section)
 
-        segment = Segment(stack = s, assembly = None, hash_value = hash_value,
+        segment = Segment(dataset = ds, assembly = None, hash_value = hash_value,
                           section_inf = section, min_x = min_x,
                           min_y = min_y, max_x = max_x, max_y = max_y,
                           ctr_x = ctr_x, ctr_y = ctr_y, type = 1, direction = direction,
@@ -430,8 +428,8 @@ def insert_branch_segment(request, project_id = None, stack_id = None):
         return HttpResponse(json.dumps({'id': -1}), mimetype='text/json')
     pass
 
-def set_segments_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def set_segments_block(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
 
     segment_ids_str = request.GET.getlist('segment[]')
     block_id = int(request.GET.get('block'))
@@ -441,7 +439,7 @@ def set_segments_block(request, project_id = None, stack_id = None):
     try:
         block = Block.objects.get(id = block_id)
 
-        segments = Segment.objects.filter(stack = s, id__in = segment_ids)
+        segments = Segment.objects.filter(dataset = ds, id__in = segment_ids)
 
         ok_segment_ids = [qsegment.id for qsegment in segments]
 
@@ -455,56 +453,56 @@ def set_segments_block(request, project_id = None, stack_id = None):
         return HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
     pass
 
-def retrieve_segments_by_hash(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_segments_by_hash(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     hash_values_str = request.GET.getlist('hash[]')
     hash_values = map(int, hash_values_str)
-    segments = Segment.object.filter(stack = s, hash_value__in = hash_values)
+    segments = Segment.object.filter(dataset = ds, hash_value__in = hash_values)
     return generate_segments_response(segments)
 
-def retrieve_segments_by_dbid(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_segments_by_dbid(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     ids_str = request.GET.getlist('id[]')
     ids = map(int, ids_str)
-    segments = Segment.object.filter(stack = s, id__in = ids)
+    segments = Segment.object.filter(dataset = ds, id__in = ids)
     return generate_segments_response(segments)
 
-def retrieve_segments_by_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def retrieve_segments_by_block(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     block_id = int(request.GET.get('block_id'))
     try:
-        block = Block.objects.get(stack = s, id = block_id)
+        block = Block.objects.get(dataset = ds, id = block_id)
         segment_ids = block.segments
-        segments = Segment.object.filter(stack = s, id__in = segment_ids)
+        segments = Segment.object.filter(dataset = ds, id__in = segment_ids)
         return generate_segments_response(segments)
     except:
         return generate_segments_response(Segment.objects.none())
 
 # --- convenience code for debug purposes ---
-def clear_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def clear_slices(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
-        Slice.object.filter(stack = s).delete()
+        Slice.object.filter(dataset = ds).delete()
         return HttpResponse(json.dumps({'ok' : True}), mimetype='text/json')
     else:
         HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
-def clear_segments(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def clear_segments(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
-        Segment.object.filter(stack = s).delete()
+        Segment.object.filter(dataset = ds).delete()
         return HttpResponse(json.dumps({'ok' : True}), mimetype='text/json')
     else:
         HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
-def clear_blocks(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Dataset, pk = stack_id)
+def clear_blocks(request, dataset_id = None):
+    s = get_object_or_404(Dataset, pk = dataset_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
-        Block.object.filter(stack = s).delete()
-        BlockInfo.object.filter(stack = s).delete()
+        Block.object.filter(dataset = ds).delete()
+        BlockInfo.object.filter(dataset = ds).delete()
         return HttpResponse(json.dumps({'ok' : True}), mimetype='text/json')
     else:
         HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
