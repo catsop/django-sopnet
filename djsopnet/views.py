@@ -99,7 +99,7 @@ def setup_blocks(request, project_id = None, stack_id = None):
     except:
         return HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
-    s = get_object_or_404(Stack, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=stack_id)
     p = get_object_or_404(Project, pk=project_id)
     u = User.objects.get(id=1)
 
@@ -140,7 +140,7 @@ def setup_blocks(request, project_id = None, stack_id = None):
 
 def block_at_location(request, project_id = None, stack_id = None):
 
-    s = get_object_or_404(Stack, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=stack_id)
     try:
         x = int(request.GET.get('x'))
         y = int(request.GET.get('y'))
@@ -159,7 +159,7 @@ def block_at_location(request, project_id = None, stack_id = None):
 
 
 def block_info(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=stack_id)
     try:
         block_info = BlockInfo.objects.get(stack = s)
         return generate_block_info_response(block_info)
@@ -167,7 +167,7 @@ def block_info(request, project_id = None, stack_id = None):
         return generate_block_info_response(None)
 
 def set_block_slice_flag(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=stack_id)
     block_id = int(request.GET.get('block_id'))
     flag = int(request.GET.get('flag'))
     try:
@@ -179,7 +179,7 @@ def set_block_slice_flag(request, project_id = None, stack_id = None):
         HttpResponse(json.dumps({'ok': False}), mimetype='text/json')
 
 def set_block_segment_flag(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk=stack_id)
+    s = get_object_or_404(Dataset, pk=stack_id)
     block_id = int(request.GET.get('block_id'))
     flag = int(request.GET.get('flag'))
     try:
@@ -193,7 +193,7 @@ def set_block_segment_flag(request, project_id = None, stack_id = None):
 # --- Slices ---
 
 def insert_slice(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     p = get_object_or_404(Project, pk = project_id)
     u = User.objects.get(id = 1)
 
@@ -236,7 +236,7 @@ def insert_slice(request, project_id = None, stack_id = None):
 
 
 def set_slices_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     try:
         slice_ids_str = request.GET.getlist('slice[]')
@@ -261,14 +261,14 @@ def set_slices_block(request, project_id = None, stack_id = None):
 
 
 def retrieve_slices_by_hash(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     hash_values_str = request.GET.getlist('hash[]')
     hash_values = map(int, hash_values_str)
     slices = Slice.object.filter(stack = s, hash_value__in = hash_values)
     return generate_slices_response(slices)
 
 def retrieve_slices_by_dbid(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     ids_str = request.GET.get('id[]')
     ids = map(int, ids_str)
     slices = Slice.object.filter(stack = s, id__in = ids)
@@ -276,7 +276,7 @@ def retrieve_slices_by_dbid(request, project_id = None, stack_id = None):
 
 
 def retrieve_slices_by_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     block_id = int(request.GET.get('block_id'))
     try:
         block = Block.objects.get(stack = s, id = block_id)
@@ -287,7 +287,7 @@ def retrieve_slices_by_block(request, project_id = None, stack_id = None):
         return generate_slices_response(Slice.objects.none())
 
 def set_parent_slice(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     try:
         child_id_strs = request.GET.getlist('child_id[]')
         parent_id_strs = reqeust.GET.getlist('parent_id[]')
@@ -306,7 +306,7 @@ def set_parent_slice(request, project_id = None, stack_id = None):
         return HttpResponse(json.dumps({'ok' : False}), mimetype = 'text/json')
 
 def retrieve_parent_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     cp_array = []
 
@@ -322,7 +322,7 @@ def retrieve_parent_slices(request, project_id = None, stack_id = None):
     return HttpResponse(json.dumps({'cp_map' : cp_array}), mimetype = 'text/json')
 
 def retrieve_child_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     pc_array = []
 
     try:
@@ -342,7 +342,7 @@ def retrieve_child_slices(request, project_id = None, stack_id = None):
 # --- Segments ---
 
 def insert_end_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -367,7 +367,7 @@ def insert_end_segment(request, project_id = None, stack_id = None):
 
 
 def insert_continuation_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -398,7 +398,7 @@ def insert_continuation_segment(request, project_id = None, stack_id = None):
 
 
 def insert_branch_segment(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     try:
         hash_value = int(request.GET.get('hash'))
@@ -431,7 +431,7 @@ def insert_branch_segment(request, project_id = None, stack_id = None):
     pass
 
 def set_segments_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
 
     segment_ids_str = request.GET.getlist('segment[]')
     block_id = int(request.GET.get('block'))
@@ -456,21 +456,21 @@ def set_segments_block(request, project_id = None, stack_id = None):
     pass
 
 def retrieve_segments_by_hash(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     hash_values_str = request.GET.getlist('hash[]')
     hash_values = map(int, hash_values_str)
     segments = Segment.object.filter(stack = s, hash_value__in = hash_values)
     return generate_segments_response(segments)
 
 def retrieve_segments_by_dbid(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     ids_str = request.GET.getlist('id[]')
     ids = map(int, ids_str)
     segments = Segment.object.filter(stack = s, id__in = ids)
     return generate_segments_response(segments)
 
 def retrieve_segments_by_block(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     block_id = int(request.GET.get('block_id'))
     try:
         block = Block.objects.get(stack = s, id = block_id)
@@ -482,7 +482,7 @@ def retrieve_segments_by_block(request, project_id = None, stack_id = None):
 
 # --- convenience code for debug purposes ---
 def clear_slices(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
         Slice.object.filter(stack = s).delete()
@@ -491,7 +491,7 @@ def clear_slices(request, project_id = None, stack_id = None):
         HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
 def clear_segments(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
         Segment.object.filter(stack = s).delete()
@@ -500,7 +500,7 @@ def clear_segments(request, project_id = None, stack_id = None):
         HttpResponse(json.dumps({'ok' : False}), mimetype='text/json')
 
 def clear_blocks(request, project_id = None, stack_id = None):
-    s = get_object_or_404(Stack, pk = stack_id)
+    s = get_object_or_404(Dataset, pk = stack_id)
     sure = request.GET.get('sure')
     if sure == 'yes':
         Block.object.filter(stack = s).delete()

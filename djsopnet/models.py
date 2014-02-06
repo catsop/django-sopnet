@@ -1,8 +1,17 @@
 from django.db import models
 
+class Dataset(models.Model):
+    dimension = Integer3DField()
+    resolution = Double3DField()
+    data_type = models.IntegerField(default=1)
+    image_base = models.TextField()
+    file_extension = models.TextField()
+    tile_width = models.IntegerField(default=512)
+    tile_height = models.IntegerField(default=512)
+    tile_source_type = models.IntegerField(default=1)
+
 class Slice(models.Model):
-    stack = models.ForeignKey(Stack)
-    assembly = models.ForeignKey(ClassInstance, null=True)
+    dataset = models.ForeignKey(Dataset)
     hash_value = models.IntegerField(db_index=True)
     section = models.IntegerField(db_index=True)
 
@@ -29,8 +38,7 @@ class Slice(models.Model):
     parent = models.ForeignKey('self', null=True)
 
 class Segment(models.Model):
-    stack = models.ForeignKey(Stack)
-    assembly = models.ForeignKey(ClassInstance, null=True)
+    dataset = models.ForeignKey(Dataset)
     hash_value = models.IntegerField(db_index=True)
     # section infimum, or rather, the id of the section closest to z = -infinity to which this segment belongs.
     section_inf = models.IntegerField(db_index=True)
@@ -62,8 +70,7 @@ class Segment(models.Model):
     slice_c = models.ForeignKey(Slice, null=True, db_index=True, related_name='slice_c')
 
 class Block(models.Model):
-    stack = models.ForeignKey(Stack)
-
+    dataset = models.ForeignKey(Dataset)
     # bounding box
     min_x = models.IntegerField(db_index=True)
     min_y = models.IntegerField(db_index=True)
@@ -79,7 +86,7 @@ class Block(models.Model):
     segments_flag = models.BooleanField(default=False)
 
 class BlockInfo(models.Model):
-    stack = models.ForeignKey(Stack)
+    dataset = models.ForeignKey(Dataset)
 
     height = models.IntegerField()
     width = models.IntegerField()
